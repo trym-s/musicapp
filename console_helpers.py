@@ -11,17 +11,19 @@ def execute_query(connection, query_with_params):
         list: Sorgudan dönen sonuçlar.
     """
     try:
-        # Query ve parametreleri ayıkla
         query, params = query_with_params if isinstance(query_with_params, tuple) else (query_with_params, None)
-        
-        # Sorguyu çalıştır
         cursor = connection.cursor()
         cursor.execute(query, params if params else ())
         
-        # Sonuçları al ve cursor'u kapat
-        results = cursor.fetchall()
+        # Yalnızca SELECT sorgularında sonuçları döndürün
+        if query.strip().lower().startswith("select"):
+            results = cursor.fetchall()
+            cursor.close()
+            return results
+        
+        # SELECT dışındaki sorgular için yalnızca işlem yap
+        connection.commit()
         cursor.close()
-        return results
     except Exception as e:
         print("Error executing query:", e)
         return None

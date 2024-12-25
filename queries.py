@@ -1,12 +1,15 @@
 def get_playlists_with_song_counts():
-    """Kullanıcıların playlistlerini ve şarkı sayılarını getirir."""
+    """Kullanıcıların playlistlerini, şarkı sayılarını ve playlist ID'sini getirir."""
     return """
-    SELECT u.username AS user_name, p.name AS playlist_name, COUNT(ps.song_id) AS song_count
+    SELECT p.playlist_id AS playlist_id, 
+           u.username AS user_name, 
+           p.name AS playlist_name, 
+           COUNT(ps.song_id) AS song_count
     FROM musicapp.playlist p
     JOIN musicapp."user" u ON p.user_id = u.user_id
     LEFT JOIN musicapp.playlist_song ps ON p.playlist_id = ps.playlist_id
-    GROUP BY u.username, p.name
-    ORDER BY u.username, p.name;
+    GROUP BY p.playlist_id, u.username, p.name
+    ORDER BY p.playlist_id ASC;
     """
 
 def get_user_favorites_query(username):
@@ -25,10 +28,67 @@ def get_user_favorites_query(username):
         LEFT JOIN musicapp.song s ON f.favorite_type = 'song' AND f.favorite_id = s.song_id
         JOIN musicapp."user" u ON f.user_id = u.user_id
         WHERE u.username = %s
-        ORDER BY f.favorite_type;
+        ORDER BY f.favorite_id ASC;
         """,
         (username,),
     )
+def get_playlist_name():
+    """Belirli bir playlist'in adını getirir."""
+    return """
+    SELECT name
+    FROM musicapp.playlist
+    WHERE playlist_id = %s;
+    """
+def add_song_to_playlist():
+    """Bir şarkıyı belirli bir playlist'e ekler."""
+    return """
+    INSERT INTO musicapp.playlist_song (playlist_id, song_id)
+    VALUES (%s, %s);
+    """
+def get_all_playlists():
+    """Tüm playlist'leri ve ID'lerini getirir."""
+    return """
+    SELECT playlist_id, name
+    FROM musicapp.playlist
+    ORDER BY playlist_id ASC;
+    """
+def get_all_usernames():
+    """Tüm kullanıcı adlarını getirir."""
+    return """
+    SELECT username 
+    FROM musicapp."user"
+    ORDER BY username;
+    """
+
+def get_song_reviews():
+    return """
+    SELECT r.review_text, r.rating, u.username, r.created_at
+    FROM musicapp.song_review r
+    JOIN musicapp."user" u ON r.user_id = u.user_id
+    WHERE r.song_id = %s
+    ORDER BY r.review_id ASC;
+    """
+
+def get_songs_in_playlist():
+    """Bir playlist içindeki şarkıları getirir."""
+    return """
+    SELECT s.title AS song_title, 
+           a.name AS artist_name, 
+           s.duration AS duration
+    FROM musicapp.playlist_song ps
+    JOIN musicapp.song s ON ps.song_id = s.song_id
+    JOIN musicapp.artist a ON s.artist_id = a.artist_id
+    WHERE ps.playlist_id = %s
+    ORDER BY s.song_id ASC;
+    """
+
+
+def add_song_review():
+    return """
+    INSERT INTO musicapp.song_review (user_id, song_id, review_text, rating)
+    VALUES (%s, %s, %s, %s);
+    """
+
 def get_most_listened_genre():
     """En çok dinlenen türü getirir."""
     return """
@@ -57,7 +117,7 @@ def get_all_artists_query():
     return """
     SELECT artist_id, name 
     FROM musicapp.artist 
-    ORDER BY name;
+    ORDER BY artist_id ASC;
     """
 
 def get_albums_by_artist_query(artist_id):
@@ -66,7 +126,7 @@ def get_albums_by_artist_query(artist_id):
     SELECT album_id, title 
     FROM musicapp.album 
     WHERE artist_id = %s
-    ORDER BY release_date DESC;
+    ORDER BY album_id ASC;
     """, (artist_id,)
 
 def get_songs_by_album_query(album_id):
@@ -75,13 +135,14 @@ def get_songs_by_album_query(album_id):
     SELECT song_id, title, duration 
     FROM musicapp.song 
     WHERE album_id = %s
-    ORDER BY title;
+    ORDER BY song_id ASC;
     """, (album_id,)
 
 def get_all_playlists():
     """Tüm kullanıcılar ve playlistleri gösteren sorgu."""
     return """
     SELECT 
+        p.playlist_id AS playlist_id,       -- Playlist ID'yi ekledik
         u.username AS user_name,
         p.name AS playlist_name,
         COUNT(ps.song_id) AS song_count
@@ -92,7 +153,7 @@ def get_all_playlists():
     LEFT JOIN 
         musicapp.playlist_song ps ON p.playlist_id = ps.playlist_id
     GROUP BY 
-        u.username, p.name
+        p.playlist_id, u.username, p.name  -- Playlist ID'yi GROUP BY'a ekledik
     ORDER BY 
         u.username, p.name;
     """
@@ -127,7 +188,7 @@ def get_top_rated_songs():
     """En yüksek puanlı şarkıları getirir."""
     return """
     SELECT 
-        s.title AS song_title,
+        s.title AS song ASC_title,
         a.name AS artist_name,
         s.rating AS song_rating
     FROM 

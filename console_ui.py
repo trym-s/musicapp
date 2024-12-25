@@ -1,7 +1,7 @@
 from tabulate import tabulate
 from artist_album_song import select_artist_album_song
 from queries import *
-from console_helpers import execute_query
+from console_helpers import * 
 
 
 def display_options():
@@ -20,12 +20,56 @@ def process_option(option, connection):
     if option == 1:
         query = get_playlists_with_song_counts()
         results = execute_query(connection, query)
-        print(tabulate(results, headers=["User", "Playlist", "Song Count"], tablefmt="psql"))
+        try:    
+            print_results(results, ["Playlist ID", "User", "Playlist", "Song Count"])
+            playlist_id = int(input("\nEnter the ID of the playlist to view its songs (or 0 to go back): "))
+            if playlist_id == 0:
+                return
+
+            # Playlist adını al
+            query = get_playlist_name()
+            playlist_name_result = execute_query(connection, (query, (playlist_id,)))
+            if not playlist_name_result:
+                print("Playlist not found.")
+                return
+            playlist_name = playlist_name_result[0][0]
+        
+        # Seçilen playlist içindeki şarkıları listele
+            query = get_songs_in_playlist()
+            songs = execute_query(connection, (query, (playlist_id,)))
+            if not songs:
+                print("No songs found in this playlist.")
+            else:
+                print(f"\nSongs in Selected Playlist: {playlist_name}")
+                print_results(songs, ["Song Title", "Artist Name", "Duration (sec)"])
+        except Exception as e:
+            print("Error retrieving playlist songs:", e)
+
     elif option == 2:
-        username = input("Enter username to view favorites: ")
-        query = get_user_favorites_query(username)
-        results = execute_query(connection, query)
-        print(tabulate(results, headers=["Favorite Type", "Favorite Name"], tablefmt="psql"))
+        try:
+            # Kullanıcı adlarını listele
+            query = get_all_usernames()
+            usernames = execute_query(connection, query)
+            if not usernames:
+                print("No users found.")
+                return
+        
+            print("\nAvailable Usernames:")
+            for username in usernames:
+                print(f"- {username[0]}")  # Username'leri listele
+        
+            # Kullanıcı adı seçimi
+            selected_username = input("\nEnter username to view favorites: ")
+            query = get_user_favorites_query(selected_username)
+            results = execute_query(connection, query)
+        
+            if not results:
+                print(f"No favorites found for user '{selected_username}'.")
+            else:
+                print_results(results, ["Favorite Type", "Favorite Name"])
+        except Exception as e:
+            print(f"Error fetching user favorites: {e}")
+
     elif option == 3:
         query = get_top_rated_songs_query()
         results = execute_query(connection, query)
