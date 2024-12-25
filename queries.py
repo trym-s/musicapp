@@ -32,6 +32,8 @@ def get_user_favorites_query(username):
         """,
         (username,),
     )
+
+
 def get_playlist_name():
     """Belirli bir playlist'in adını getirir."""
     return """
@@ -98,8 +100,7 @@ def get_most_listened_genre():
     JOIN musicapp.song_genre sg ON s.song_id = sg.song_id
     JOIN musicapp.genre g ON sg.genre_id = g.genre_id
     GROUP BY g.name
-    ORDER BY listen_count DESC
-    LIMIT 1;
+    ORDER BY listen_count DESC;
     """
 
 def get_top_rated_songs_query():
@@ -157,7 +158,49 @@ def get_all_playlists():
     ORDER BY 
         u.username, p.name;
     """
+def get_all_users():
+    """Tüm kullanıcıların ID ve kullanıcı adlarını getirir."""
+    return """
+    SELECT user_id, username
+    FROM musicapp."user"
+    ORDER BY user_id;
+    """
 
+def update_playlist_name():
+    """Bir playlist'in adını günceller."""
+    return """
+    UPDATE musicapp.playlist
+    SET name = %s
+    WHERE playlist_id = %s;
+    """
+
+def remove_from_favorites():
+    """Kullanıcının favorilerinden bir öğeyi siler."""
+    return """
+    DELETE FROM musicapp.user_favorite
+    WHERE user_id = %s AND favorite_type = %s AND favorite_id = %s;
+    """
+def update_username():
+    """Kullanıcı adını güncelleyen sorgu."""
+    return """
+    UPDATE musicapp."user"
+    SET username = %s
+    WHERE user_id = %s;
+    """
+def get_all_users():
+    """Tüm kullanıcıların ID ve kullanıcı adlarını getirir."""
+    return """
+    SELECT user_id, username
+    FROM musicapp."user"
+    ORDER BY user_id;
+    """
+
+def add_to_favorites():
+    """Kullanıcı favorilerine sanatçı, albüm veya şarkı ekler."""
+    return """
+    INSERT INTO musicapp.user_favorite (user_id, favorite_type, favorite_id)
+    VALUES (%s, %s, %s);
+    """
 def get_user_favorites(username):
     """Belirli bir kullanıcının favori sanatçılarını, albümlerini ve şarkılarını getirir."""
     return f"""
@@ -183,7 +226,12 @@ def get_user_favorites(username):
     ORDER BY 
         f.favorite_type;
     """
-
+def add_to_favorites():
+    """Kullanıcı favorilerine sanatçı, albüm veya şarkı ekler."""
+    return """
+    INSERT INTO musicapp.user_favorite (user_id, favorite_type, favorite_id)
+    VALUES (%s, %s, %s);
+    """
 def get_top_rated_songs():
     """En yüksek puanlı şarkıları getirir."""
     return """
